@@ -1,0 +1,157 @@
+""This Python script serves as a command-line task management system, enabling users to efficiently 
+add, categorize, complete, and export tasks based on priority levels. It utilizes Python’s defaultdict
+to streamline task organization, offers an intuitive interface for managing tasks, and incorporates 
+the python-docx library to generate a Word document containing the task list.
+Features
+
+This script is equipped with several key functionalities to enhance productivity. 
+Users can add tasks and assign them priority levels—High, Medium, or Low—allowing for clear organization. Tasks are displayed in a structured manner, 
+sorted by priority and further arranged alphabetically for easy reference. Additionally, tasks can be marked as complete and removed from the list once accomplished. 
+For future reference, the task list can be exported to a Word document. The script also includes safeguards to ensure smooth user input handling, preventing errors and enhancing usability.""
+
+
+
+import sys  # Import system-specific functions
+from docx import Document  # Import Document class for handling Word documents
+from collections import defaultdict  # Import defaultdict for efficient dictionary operations
+
+# Class to manage tasks with priority levels
+class TaskHandler:
+    def __init__(self):
+        # Dictionary to store tasks categorized by priority.  Default value is an empty list.
+        self.task_dict = defaultdict(list)
+
+    def add_task(self, task_name, priority):
+        """Adds a task with the specified priority level."""
+        # Remove leading/trailing whitespace from the task name
+        task_name = task_name.strip()
+        # Ensure task is not empty after stripping whitespace
+        if not task_name:
+            print("Task cannot be empty.")
+            return
+
+        # Remove leading/trailing whitespace and convert priority to lowercase
+        priority = priority.lower().strip()
+        # Validate priority level. Check if it's one of the allowed values.
+        if priority not in {'high', 'medium', 'low'}:
+            print("Invalid priority level. Use 'high', 'medium', or 'low'.")
+            return
+
+        # Add task to the dictionary under the specified priority key (which is the priority level)
+        self.task_dict[priority].append(task_name)
+        print(f"Task '{task_name}' added with {priority} priority.")
+
+    def display_tasks(self):
+        """Displays tasks sorted by priority and then alphabetically."""
+        # Check if there are any tasks to display.  any() checks if any value in the dict is True.
+        if not any(self.task_dict.values()):
+            print("No tasks available.")
+            return
+
+        print("Task List:")
+        # Define the order in which priorities should be displayed
+        priority_order = ['high', 'medium', 'low']
+        # Define symbols to represent each priority level
+        priority_symbols = {"high": "⚠️", "medium": "⚡", "low": "✔️"}
+
+        # Iterate through the defined priority order
+        for priority in priority_order:
+            # Sort tasks alphabetically within the current priority level
+            sorted_tasks = sorted(self.task_dict[priority])
+            # Check if there are any tasks for this priority level
+            if sorted_tasks:
+                # Print the priority level as a heading
+                print(f"\n{priority.upper()} Priority:")
+                # Iterate through the alphabetically sorted tasks for the current priority
+                for task in sorted_tasks:
+                    # Print the task along with its corresponding priority symbol
+                    print(f"{priority_symbols[priority]} {task}")
+
+    def complete_task(self, task_name):
+        """Marks a task as complete by removing it from the list."""
+        # Iterate through the dictionary keys (priorities)
+        for priority in list(self.task_dict): # Iterate over a copy to avoid modification during loop issues
+            # Check if the task name exists in the list associated with the current priority
+            if task_name in self.task_dict[priority]:
+                # Remove the task from the list
+                self.task_dict[priority].remove(task_name)
+                print(f"Task '{task_name}' marked as complete and removed.")
+                return  # Exit the function after removing the task
+
+        # If the task name is not found in any priority level
+        print(f"Task '{task_name}' not found.")
+
+    def export_to_word(self, filename="tasks.docx"):
+        """Saves the task list to a Word document."""
+        # Create a new Word document object
+        doc = Document()
+        # Add a heading to the document
+        doc.add_heading("Task List", level=1)
+
+        # Iterate through the priority levels in the desired order
+        for priority in ['high', 'medium', 'low']:
+            # Sort tasks alphabetically within each priority level
+            sorted_tasks = sorted(self.task_dict[priority])
+            # Check if there are any tasks for this priority level
+            if sorted_tasks:
+                # Add a subheading for the current priority level
+                doc.add_heading(f"{priority.upper()} Priority", level=2)
+                # Iterate through the sorted tasks for the current priority
+                for task in sorted_tasks:
+                    # Add each task as a paragraph to the Word document
+                    doc.add_paragraph(task)
+
+        # Save the Word document with the specified filename
+        doc.save(filename)
+        print(f"Task list saved to {filename}")
+
+# Main execution function
+def main():
+    # Create an instance of the TaskHandler class
+    task_handler = TaskHandler()
+
+    # Main loop for adding tasks
+    while True:
+        try:
+            # Prompt the user to enter a task name (or 'done' to finish adding tasks)
+            task = input("Enter task (or type 'done' to finish adding): ").strip()
+            # If the user types 'done', exit the adding tasks loop
+            if task.lower() == 'done':
+                break
+            # Prompt the user to enter the priority level for the task
+            priority = input("Enter priority (high, medium, low): ").strip().lower()
+            # Add the task to the task handler
+            task_handler.add_task(task, priority)
+        except KeyboardInterrupt:  # Handle Ctrl+C (keyboard interrupt)
+            print("\nProcess interrupted. Exiting...")
+            return  # Exit the main function
+
+    # Display the current list of tasks
+    task_handler.display_tasks()
+
+    # Main loop for completing tasks
+    while True:
+        # Prompt the user to choose to complete a task
+        complete = input("Mark a task as complete? (yes/no/exit): ").strip().lower()
+        # If the user chooses to complete a task
+        if complete == 'yes':
+            # Prompt the user to enter the task name to be completed
+            task = input("Enter the task to mark as complete: ").strip()
+            # Mark the specified task as complete
+            task_handler.complete_task(task)
+            # Redisplay the updated task list
+            task_handler.display_tasks()
+        # If the user chooses not to complete a task or exit
+        elif complete in {'no', 'exit'}:
+            break  # Exit the completing tasks loop
+        # If the user enters invalid input
+        else:
+            print("Invalid input. Please enter 'yes', 'no', or 'exit'.")
+
+    # Export the task list to a Word document
+    task_handler.export_to_word()
+
+# Check if the script is run directly (not imported as a module)
+if __name__ == "__main__":
+    # Call the main function to start the program
+    main()
